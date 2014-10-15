@@ -124,7 +124,7 @@ main(int argc, char *argv[])
 
 exit:
 	close(soc);
-	unlink(SOC_PATH);
+	//unlink(SOC_PATH);
 
 	return rc;
 }

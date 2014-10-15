@@ -2,7 +2,7 @@
 TARGET = cabochad
 SRC = cabochad.c
 CC=clang
-CFLAGS= -Wall -I/usrlocal/include
+CFLAGS= -Wall -Wextra -I/usrlocal/include
 
 all: $(TARGET)
 

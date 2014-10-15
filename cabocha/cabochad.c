@@ -9,14 +9,14 @@
 static cabocha_t *cabocha;
 
 static int
-callback_http(struct libwebsocket_context * this,
+callback_http(struct libwebsocket_context *this,
 	      struct libwebsocket *wsi,
-	      enum libwebsocket_callback_reasons reason, void *user,
-	      void *in, size_t len)
+	      enum libwebsocket_callback_reasons reason,
+	      void *user, void *in, size_t len)
 {
 	switch (reason) {
 	case LWS_CALLBACK_ESTABLISHED:
-		printf("connection established\n");
+		//printf("connected\n");
 		break;
 	case LWS_CALLBACK_RECEIVE: {
 		const char *result = cabocha_sparse_tostr2(cabocha, in, len);
@@ -40,12 +40,16 @@ callback_http(struct libwebsocket_context * this,
 
 static struct libwebsocket_protocols protocols[] = {
 	{
-		"http-only",
-		callback_http,
-		0
+		.name = "http-only",
+		.callback = callback_http,
+		.per_session_data_size = 0,
+		.rx_buffer_size = 0
 	},
 	{
-		NULL, NULL, 0
+		.name = NULL,
+		.callback = NULL,
+		.per_session_data_size = 0,
+		.rx_buffer_size = 0
 	}
 };
 
@@ -63,7 +67,6 @@ main(int argc, char *argv[]) {
 	info.options = 0;
 	info.protocols = protocols;
 
-	//lws_set_log_level(0, NULL);
 	context = libwebsocket_create_context(&info);
 	if (context == NULL) {
 		lwsl_err("libwebsocket init failed\n");
