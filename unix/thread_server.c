@@ -56,7 +56,6 @@ static int
 server(int sockfd)
 {
 	int fd;
-	pid_t child;
 	socklen_t len;
 	struct sockaddr_un addr;
 	pthread_t *th;
