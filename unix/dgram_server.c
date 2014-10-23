@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define SOC_PATH	"/tmp/test.soc"
+#define SERVER_IN_PATH	"/tmp/test.soc"
 #define MSG1		"hello"
 #define MSG2		"event"
 
@@ -18,15 +18,15 @@ struct th_arg {
 	socklen_t addrlen;
 };
 
-struct th_arg th_args;
-
 static void *
 worker(void *args)
 {
+	struct th_arg *p = (struct th_arg *)args;
+
 	for (int i = 0; i < 10; i++) {
-		sendto(th_args.soc, MSG2, strlen(MSG2) + 1, 0,
-		       (struct sockaddr *)&th_args.addr, th_args.addrlen);
-		sleep(1);
+		printf("Send to '%s'\n", p->addr.sun_path);
+		sendto(p->soc, MSG2, strlen(MSG2) + 1, 0,
+		       (struct sockaddr *)&p->addr, p->addrlen);
 	}
 
 	return NULL;
@@ -36,14 +36,17 @@ static pthread_t *
 run_event_thread(int soc, struct sockaddr_un *peer, socklen_t addrlen)
 {
 	pthread_t *th;
+	struct th_arg *arg;
 
+	//XXX
 	th = malloc(sizeof(pthread_t));
+	arg = malloc(sizeof(struct th_arg));
 
-	th_args.soc = soc;
-	memcpy(&th_args.addr, peer, sizeof(struct sockaddr_un));
-	th_args.addrlen = addrlen;
+	arg->soc = soc;
+	memcpy(&arg->addr, peer, sizeof(struct sockaddr_un));
+	arg->addrlen = addrlen;
 
-	pthread_create(th, NULL, worker, NULL);
+	pthread_create(th, NULL, worker, arg);
 
 	return th;
 }
@@ -63,6 +66,7 @@ server(int soc)
 			perror("recvfrom");
 			return -1;
 		}
+		printf("Received from '%s'\n", peer.sun_path);
 
 		int type = buf[0];
 		printf("server received (%d)\n", type);
@@ -95,26 +99,32 @@ int
 main(int argc, char *argv[])
 {
 	int rc;
-	int soc;
-	struct sockaddr_un soc_addr;
+	int sockfd;
+	struct sockaddr_un saddr, saddr2;
+	socklen_t len;
 
-	soc = socket(AF_UNIX, SOCK_DGRAM, 0);
-	if (soc < 0) {
+	sockfd = socket(AF_LOCAL, SOCK_DGRAM, 0);
+	if (sockfd < 0) {
 		perror("socket");
 		return EXIT_FAILURE;
 	}
 
-	soc_addr.sun_family = AF_UNIX;
-	memcpy(soc_addr.sun_path, SOC_PATH, strlen(SOC_PATH) + 1);
+	saddr.sun_family = AF_LOCAL;
+	memcpy(saddr.sun_path, SERVER_IN_PATH, sizeof(saddr.sun_path) - 1);
+	unlink(SERVER_IN_PATH);
 
-	rc = bind(soc, (struct sockaddr *)&soc_addr, sizeof(soc_addr));
+	rc = bind(sockfd, (struct sockaddr *)&saddr, sizeof(saddr));
 	if (rc < 0) {
 		perror("bind");
 		rc = EXIT_FAILURE;
 		goto exit;
 	}
 
-	rc = server(soc);
+	len = sizeof(saddr2);
+	getsockname(sockfd, (struct sockaddr*)&saddr2, &len);
+	printf("Bound socket to '%s'\n", saddr2.sun_path);
+
+	rc = server(sockfd);
 	if (rc < 0) {
 		rc = EXIT_FAILURE;
 	}
@@ -123,8 +133,7 @@ main(int argc, char *argv[])
 	}
 
 exit:
-	close(soc);
-	//unlink(SOC_PATH);
+	close(sockfd);
 
 	return rc;
 }

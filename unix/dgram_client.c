@@ -6,50 +6,67 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define SOC_PATH	"/tmp/test.soc"
+#define SERVER_SOCK_PATH	"/tmp/test.soc"
+//#define TEST
+#define CLIENT_SOCK_PATH	"/tmp/test.cli.soc"
 
 static char buf[BUFSIZ];
 
 int
 main(int argc, char *argv[])
 {
-	int rc, soc;
-	struct sockaddr_un client, server, peer;
+	int rc, sockfd;
+	struct sockaddr_un client, server, peer, info;
 	socklen_t addrlen;
 	char c;
 
-	soc = socket(AF_UNIX, SOCK_DGRAM, 0);
-	if (soc < 0) {
+	sockfd = socket(AF_LOCAL, SOCK_DGRAM, 0);
+	if (sockfd < 0) {
 		perror("socket");
 		return EXIT_FAILURE;
 	}
 
-	client.sun_family = AF_UNIX;
-	rc = bind(soc, (struct sockaddr *)&client, sizeof(client));
+	memset(&client, 0, sizeof(struct sockaddr_un));
+	client.sun_family = AF_LOCAL;
+#ifdef TEST
+	strncpy(client.sun_path, CLIENT_SOCK_PATH,
+		sizeof(client.sun_path) - 1);
+	unlink(CLIENT_SOCK_PATH);
+#endif
 
-	server.sun_family = AF_UNIX;
-	memcpy(server.sun_path, SOC_PATH, strlen(SOC_PATH) + 1);
+	rc = bind(sockfd, (struct sockaddr *)&client, sizeof(client));
 
-	printf("Send msg 1\n");
+	addrlen = sizeof(struct sockaddr_un);
+	getsockname(sockfd, (struct sockaddr *)&info, &addrlen);
+	printf("Bound socket to '%s'\n", info.sun_path);
+
+	memset(&server, 0, sizeof(struct sockaddr_un));
+	server.sun_family = AF_LOCAL;
+	strncpy(server.sun_path, SERVER_SOCK_PATH,
+		sizeof(server.sun_path) - 1);
+
+	for (int i = 0; i < 2; i++) {
+	printf("Sending a type-1 message.\n");
 	c = 1;
-	sendto(soc, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
-	recvfrom(soc, buf, BUFSIZ, 0, (struct sockaddr *)&peer, &addrlen);
-	printf("%s\n", buf);
-
-	printf("Send msg 2\n");
-	c = 2;
-	sendto(soc, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
-	for (int i = 0; i < 5; i++) {
-		recvfrom(soc, buf, BUFSIZ, 0,
-			 (struct sockaddr *)&peer, &addrlen);
-		printf("%s\n", buf);
+	sendto(sockfd, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
+	recvfrom(sockfd, buf, BUFSIZ, 0, (struct sockaddr *)&peer, &addrlen);
+	printf("Server response @ %s: '%s'\n", peer.sun_path, buf);
 	}
 
-	printf("Send msg 3\n");
-	c = 3;
-	sendto(soc, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
+	printf("Send type-2 messages.\n");
+	c = 2;
+	sendto(sockfd, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
+	for (int i = 0; i < 5; i++) {
+		recvfrom(sockfd, buf, BUFSIZ, 0,
+			 (struct sockaddr *)&peer, &addrlen);
+		printf("Server reponse @ %s: '%s'\n", peer.sun_path, buf);
+	}
 
-	close(soc);
+	printf("Send a type-3 message.\n");
+	c = 3;
+	sendto(sockfd, &c, 1, 0, (struct sockaddr *)&server, sizeof(server));
+
+	close(sockfd);
 
 	return EXIT_SUCCESS;
 }
