@@ -1,16 +1,26 @@
 
 CC = clang
+CFLAGS = -Wall -Wextra -g
 
-all: server client
+all: udp_server udp_client tcp_server tcp_client
 
-SERVER_SRC = dgram_server.c
-CLIENT_SRC = dgram_client.c
+UDP_SERVER_SRC = dgram_server.c
+UDP_CLIENT_SRC = dgram_client.c
+TCP_SERVER_SRC = stream_server.c
+TCP_CLIENT_SRC = stream_client.c
 
-server: $(SERVER_SRC)
-	$(CC) -o $@ $^ -lpthread
+udp_server: $(UDP_SERVER_SRC)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
-client: $(CLIENT_SRC)
-	$(CC) -o $@ $^
+udp_client: $(UDP_CLIENT_SRC)
+	$(CC) $(CFLAGS) -o $@ $^
+
+tcp_server: $(TCP_SERVER_SRC)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+tcp_client: $(TCP_CLIENT_SRC)
+	$(CC) $(CFLAGS) -o $@ $^
+
 
 clean:
-	rm -vf server client
+	rm -vf udp_server udp_client
