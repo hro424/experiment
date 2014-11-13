@@ -50,6 +50,7 @@ handle_request(void* args)
 exit:
 	free(buf);
 	printf("handler exit\n");
+	return NULL;
 }
 
 static int

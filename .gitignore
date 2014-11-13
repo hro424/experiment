@@ -23,3 +23,7 @@
 *.x86_64
 *.hex
 *.class
+
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
