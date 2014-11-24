@@ -1,0 +1,3 @@
+SocketServer.o: SocketServer.cc SocketServer.h
+Main.o: Main.cc LocalServerSocket.h CommandServer.h SocketServer.h \
+  RecognitionEventHandler.h DataHandler.h Log.h RecognitionService.h
