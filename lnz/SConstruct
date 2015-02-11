@@ -1,0 +1,3 @@
+env = Environment(CCFLAGS = '-Wall -O2 -std=c11')
+env.Program('lnz', ['lnz.c', 'lnz1.c', 'lnz2.c'])
+
