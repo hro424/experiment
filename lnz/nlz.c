@@ -1,16 +1,18 @@
+#define _GNU_SOURCE
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/time.h>
 
-extern int lnz1(uint32_t x);
-extern int lnz2(uint32_t x);
-
-struct timeval
-do_test(uint32_t x, int t, int (*func)(uint32_t))
+static struct timeval
+do_eval(uint32_t x, int t, int (*func)(uint32_t))
 {
 	struct timeval time1, time2, delta;
 	volatile int v;
+
+	// warm up
+	v = func(x);
 
 	gettimeofday(&time1, NULL);
 	for (int i = 0; i < t; i++) {
@@ -29,11 +31,11 @@ do_test(uint32_t x, int t, int (*func)(uint32_t))
 	return delta;
 }
 
-void
-test(const char* filename, int (*func)(uint32_t))
+static void
+eval(const char* filename, int (*func)(uint32_t))
 {
 	uint32_t x;
-	const int loop = 10000;
+	const int loop = 100000;
 	struct timeval delta;
 	FILE *fp;
 
@@ -41,7 +43,7 @@ test(const char* filename, int (*func)(uint32_t))
 
 	for (int i = 0; i < 32; i++) {
 		x = 1U << i;
-		delta = do_test(x, loop, func);
+		delta = do_eval(x, loop, func);
 
 		fprintf(fp, "%.8X %ld\n",
 		        x,
@@ -51,11 +53,40 @@ test(const char* filename, int (*func)(uint32_t))
 	fclose(fp);
 }
 
+#ifdef DEBUG
+static void
+dump(int (*func)(uint32_t))
+{
+	uint32_t x;
+	for (int i = 0; i < 32; i++) {
+		x = 1U << i;
+		printf("%x: %d\n", x, func(x));
+	}
+}
+#endif
+
+extern int nlz1(uint32_t x);
+extern int nlz2(uint32_t x);
+extern int nlz3(uint32_t x);
+extern int nlz4(uint32_t x);
+
 int
 main(int argc, char *argv[])
 {
-	test("lnz1.dat", lnz1);
-	test("lnz2.dat", lnz2);
+#ifdef DEBUG
+	dump(nlz1);
+	dump(nlz2);
+	dump(nlz3);
+#endif
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(2, &cpuset);
+	sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+
+	eval("nlz1.dat", nlz1);
+	eval("nlz2.dat", nlz2);
+	eval("nlz3.dat", nlz3);
+	eval("nlz4.dat", nlz4);
 
 	return EXIT_SUCCESS;
 }

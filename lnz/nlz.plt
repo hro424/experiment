@@ -1,2 +1,2 @@
 set logscale x 10
-plot "lnz1.dat", "lnz2.dat"
+plot "nlz1.dat", "nlz2.dat", "nlz3.dat", "nlz4.dat"

@@ -1,7 +1,7 @@
 #include <stdint.h>
 	
 int
-lnz2(uint32_t x)
+nlz2(uint32_t x)
 {
 	if (x == 0) {
 		return 32;

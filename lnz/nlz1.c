@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 int
-lnz1(uint32_t x)
+nlz1(uint32_t x)
 {
 	int n = 1;
 	if ((x & 0xFFFF0000) == 0) {
